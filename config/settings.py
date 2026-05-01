@@ -11,7 +11,16 @@ class Settings:
     """Centralized configuration. All secrets come from environment variables."""
 
     # --- Telegram ---
+    # Mode: "bot" (default, uses BotFather token) or "user" (uses Pyrogram user account)
+    TELEGRAM_MODE: str = os.getenv("TELEGRAM_MODE", "bot")
+
+    # Bot mode token (from @BotFather)
     BOT_TOKEN: str = os.getenv("BOT_TOKEN", "")
+
+    # User mode credentials (from https://my.telegram.org)
+    API_ID: int = int(os.getenv("API_ID", "0"))
+    API_HASH: str = os.getenv("API_HASH", "")
+    SESSION_NAME: str = os.getenv("SESSION_NAME", "userbot_session")
 
     # --- AI Provider ---
     AI_PROVIDER: str = os.getenv("AI_PROVIDER", "ollama")
@@ -41,8 +50,19 @@ class Settings:
     def validate(self):
         """Raise immediately if required config is missing."""
         errors = []
-        if not self.BOT_TOKEN:
-            errors.append("BOT_TOKEN is required")
+
+        if self.TELEGRAM_MODE not in ("bot", "user"):
+            errors.append(f"TELEGRAM_MODE must be 'bot' or 'user', got '{self.TELEGRAM_MODE}'")
+
+        if self.TELEGRAM_MODE == "bot" and not self.BOT_TOKEN:
+            errors.append("BOT_TOKEN is required when TELEGRAM_MODE=bot")
+
+        if self.TELEGRAM_MODE == "user":
+            if not self.API_ID or self.API_ID == 0:
+                errors.append("API_ID is required when TELEGRAM_MODE=user")
+            if not self.API_HASH:
+                errors.append("API_HASH is required when TELEGRAM_MODE=user")
+
         if self.AI_PROVIDER == "ollama" and not self.OLLAMA_API_KEY:
             errors.append("OLLAMA_API_KEY is required when AI_PROVIDER=ollama")
         if self.AI_PROVIDER == "openrouter" and not self.OPENROUTER_API_KEY:

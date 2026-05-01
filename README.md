@@ -1,6 +1,10 @@
 # Sudan Marketing Chatbot 🤖
 
-A production-ready Telegram chatbot for a Sudanese digital marketing consultancy. Built with Python, python-telegram-bot, and a pluggable AI provider system.
+A production-ready Telegram chatbot for a Sudanese digital marketing consultancy. Built with Python and a pluggable AI provider system.
+
+**Supports two Telegram modes:**
+- **Bot mode** (default): Uses a bot account via `python-telegram-bot` + BotFather token
+- **User mode**: Uses a real Telegram user account via `Pyrogram` + API_ID/API_HASH
 
 ## Architecture
 
@@ -15,6 +19,43 @@ A production-ready Telegram chatbot for a Sudanese digital marketing consultancy
 ├── docker-compose.yml
 └── setup.sh         # One-command Ubuntu server setup
 ```
+
+## Telegram Mode Configuration
+
+The bot supports two authentication modes, selected via `TELEGRAM_MODE` in `.env`:
+
+### Bot Mode (default) — `TELEGRAM_MODE=bot`
+
+Uses a bot account created via [@BotFather](https://t.me/BotFather).
+
+1. Open Telegram, search for **@BotFather**
+2. Send `/newbot` and follow the prompts
+3. Copy the bot token
+4. Add to `.env`:
+   ```
+   TELEGRAM_MODE=bot
+   BOT_TOKEN=123456:ABC-DEF...
+   ```
+
+### User Mode — `TELEGRAM_MODE=user`
+
+Uses a real Telegram user account (phone number) via Pyrogram.
+
+1. Go to [https://my.telegram.org](https://my.telegram.org) and log in
+2. Click **"API development tools"**
+3. Create a new application (any name works)
+4. Copy the `api_id` (integer) and `api_hash` (string)
+5. Add to `.env`:
+   ```
+   TELEGRAM_MODE=user
+   API_ID=12345678
+   API_HASH=abcdef1234567890abcdef1234567890
+   SESSION_NAME=userbot_session
+   ```
+6. On first run, Pyrogram will ask for your **phone number** and **verification code** in the terminal
+7. The session file is saved in `data/` so you only need to verify once
+
+> **Note:** In user mode, the account acts as a real user. It will only respond to private messages from other users (not itself). The session file in `data/` preserves your login across restarts.
 
 ## Quick Start (Local Development)
 

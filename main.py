@@ -1,6 +1,10 @@
 """
 Production-ready Telegram chatbot entry point.
 
+Supports two modes:
+    - bot   (default): Uses a bot account via python-telegram-bot + BotFather token
+    - user           : Uses a real user account via Pyrogram + API_ID/API_HASH
+
 Usage:
     python main.py              # Start the bot
     python main.py --health     # Run health check and exit
@@ -12,12 +16,9 @@ import logging
 import signal
 import sys
 
-from telegram.ext import Application
-
 from config.settings import settings
 from storage.database import init_db
 from providers import get_provider
-from bot.handlers import register_handlers
 from utils.logger import setup_logging
 
 logger = logging.getLogger(__name__)
@@ -63,12 +64,15 @@ def health_check():
         sys.exit(0)
 
 
-async def run_bot():
-    """Initialize and run the bot."""
+async def run_bot_mode():
+    """Initialize and run the bot in bot mode (python-telegram-bot)."""
+    from telegram.ext import Application
+    from bot.handlers import register_handlers
+
     # Setup
     setup_logging()
     logger.info("=" * 60)
-    logger.info("Starting bot...")
+    logger.info("Starting bot (mode=bot)...")
     logger.info("=" * 60)
 
     # Validate config
@@ -117,6 +121,35 @@ async def run_bot():
         await app.stop()
 
 
+async def run_user_mode():
+    """Initialize and run the bot in user mode (Pyrogram)."""
+    from bot.user_client import run_user_client
+
+    # Setup
+    setup_logging()
+    logger.info("=" * 60)
+    logger.info("Starting bot (mode=user)...")
+    logger.info("=" * 60)
+
+    # Validate config
+    settings.validate()
+    settings.ensure_directories()
+    logger.info("Configuration validated")
+
+    # Init database
+    init_db()
+
+    # Health check on AI provider
+    provider = get_provider()
+    if not provider.health_check():
+        logger.error("AI provider health check failed on startup")
+        sys.exit(1)
+    logger.info("AI provider (%s) is healthy", settings.AI_PROVIDER)
+
+    # Run the Pyrogram user client
+    await run_user_client()
+
+
 def main():
     parser = argparse.ArgumentParser(description="Telegram Chatbot")
     parser.add_argument(
@@ -126,8 +159,10 @@ def main():
 
     if args.health:
         health_check()
+    elif settings.TELEGRAM_MODE == "user":
+        asyncio.run(run_user_mode())
     else:
-        asyncio.run(run_bot())
+        asyncio.run(run_bot_mode())
 
 
 if __name__ == "__main__":
