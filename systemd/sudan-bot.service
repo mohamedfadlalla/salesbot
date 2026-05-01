@@ -1,0 +1,15 @@
+[Unit]
+Description=Sudan Marketing Chatbot
+After=network.target
+
+[Service]
+Type=simple
+User=botuser
+WorkingDirectory=/opt/sudan-bot
+ExecStart=/opt/sudan-bot/venv/bin/python main.py
+Restart=always
+RestartSec=10
+Environment=PATH=/opt/sudan-bot/venv/bin:/usr/bin
+
+[Install]
+WantedBy=multi-user.target
