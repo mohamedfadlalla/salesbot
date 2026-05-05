@@ -1,10 +1,10 @@
 # Sudan Marketing Chatbot 🤖
 
-A production-ready Telegram chatbot for a Sudanese digital marketing consultancy. Built with Python and a pluggable AI provider system.
+A production-ready Telegram chatbot for a Sudanese digital marketing consultancy. Built with TypeScript/Node.js and a pluggable AI provider system.
 
 **Supports two Telegram modes:**
-- **Bot mode** (default): Uses a bot account via `python-telegram-bot` + BotFather token
-- **User mode**: Uses a real Telegram user account via `Pyrogram` + API_ID/API_HASH
+- **Bot mode** (default): Uses a bot account via `telegraf` + BotFather token
+- **User mode**: Uses a real Telegram user account via `telegram` (GramJS) + API_ID/API_HASH
 
 ## Architecture
 
@@ -14,7 +14,7 @@ A production-ready Telegram chatbot for a Sudanese digital marketing consultancy
 ├── bot/             # Telegram handlers, system prompt, middleware
 ├── storage/         # SQLite database, models, repository
 ├── utils/           # Logging, helpers
-├── main.py          # Entry point
+├── src/main.ts      # Entry point
 ├── Dockerfile       # Container image
 ├── docker-compose.yml
 └── setup.sh         # One-command Ubuntu server setup
@@ -39,7 +39,7 @@ Uses a bot account created via [@BotFather](https://t.me/BotFather).
 
 ### User Mode — `TELEGRAM_MODE=user`
 
-Uses a real Telegram user account (phone number) via Pyrogram.
+Uses a real Telegram user account (phone number) via GramJS.
 
 1. Go to [https://my.telegram.org](https://my.telegram.org) and log in
 2. Click **"API development tools"**
@@ -52,7 +52,7 @@ Uses a real Telegram user account (phone number) via Pyrogram.
    API_HASH=abcdef1234567890abcdef1234567890
    SESSION_NAME=userbot_session
    ```
-6. On first run, Pyrogram will ask for your **phone number** and **verification code** in the terminal
+6. On first run, GramJS will ask for your **phone number** and **verification code** in the terminal
 7. The session file is saved in `data/` so you only need to verify once
 
 > **Note:** In user mode, the account acts as a real user. It will only respond to private messages from other users (not itself). The session file in `data/` preserves your login across restarts.
@@ -63,10 +63,7 @@ Uses a real Telegram user account (phone number) via Pyrogram.
    ```bash
    git clone <repo-url>
    cd chatbot
-   python -m venv venv
-   source venv/bin/activate  # Linux/Mac
-   # or: venv\Scripts\activate  # Windows
-   pip install -r requirements.txt
+   npm install
    ```
 
 2. **Configure:**
@@ -75,14 +72,16 @@ Uses a real Telegram user account (phone number) via Pyrogram.
    nano .env  # Add your BOT_TOKEN and OLLAMA_API_KEY
    ```
 
-3. **Run:**
+3. **Build and Run:**
    ```bash
-   python main.py
+   npm run build
+   npm start
+   # Or for development: npm run dev
    ```
 
 4. **Health check:**
    ```bash
-   python main.py --health
+   node dist/main.js --health
    ```
 
 ## Deployment (Ubuntu Server)
@@ -135,12 +134,12 @@ GEMINI_MODEL=gemini-2.0-flash
 
 ## Adding a New AI Provider
 
-1. Create `providers/my_provider.py` subclassing `AIProvider`
+1. Create `src/providers/my_provider.ts` implementing the AI Provider class
 2. Implement `chat(messages)` and `health_check()`
-3. Register in `providers/__init__.py`:
-   ```python
-   from providers.my_provider import MyProvider
-   _PROVIDER_REGISTRY["my_provider"] = MyProvider
+3. Register in `src/providers/index.ts`:
+   ```typescript
+   import { MyProvider } from './my_provider';
+   _PROVIDER_REGISTRY["my_provider"] = MyProvider;
    ```
 4. Set `AI_PROVIDER=my_provider` in `.env`
 

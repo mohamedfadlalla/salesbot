@@ -6,10 +6,10 @@ After=network.target
 Type=simple
 User=botuser
 WorkingDirectory=/opt/sudan-bot
-ExecStart=/opt/sudan-bot/venv/bin/python main.py
+ExecStart=/usr/bin/node dist/main.js
 Restart=always
 RestartSec=10
-Environment=PATH=/opt/sudan-bot/venv/bin:/usr/bin
+Environment=PATH=/usr/bin:/usr/local/bin
 
 [Install]
 WantedBy=multi-user.target
