@@ -1,6 +1,0 @@
-python-telegram-bot>=21.6,<22
-ollama>=0.4.7,<1.0
-python-dotenv>=1.0,<2.0
-httpx>=0.28,<1.0
-pyrogram>=2.0,<3.0
-tgcrypto>=1.2,<2.0

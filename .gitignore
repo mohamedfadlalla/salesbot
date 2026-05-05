@@ -1,29 +1,10 @@
-# Environment
-.env
-
-# Python
-__pycache__/
-*.py[cod]
-*$py.class
-*.egg-info/
+node_modules/
 dist/
-build/
-venv/
-.venv/
-
-# Data
+.env
 data/
 logs/
+*.log
+*.sqlite
+*.sqlite3
 *.db
-*.session
-*.session-journal
-
-# IDE
-.vscode/
-.idea/
-*.swp
-*.swo
-
-# OS
 .DS_Store
-Thumbs.db

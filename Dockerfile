@@ -1,26 +1,34 @@
-FROM python:3.12-slim
+FROM node:20-alpine AS builder
 
-# Set working directory
 WORKDIR /app
 
-# Install system dependencies
-RUN apt-get update && apt-get install -y --no-install-recommends \
-    gcc \
-    && rm -rf /var/lib/apt/lists/*
+# Install dependencies
+COPY package.json package-lock.json ./
+RUN npm ci
 
-# Copy requirements first (layer caching)
-COPY requirements.txt .
-RUN pip install --no-cache-dir -r requirements.txt
+# Copy source code and build
+COPY tsconfig.json ./
+COPY src/ ./src/
+RUN npm run build
 
-# Copy source code
-COPY . .
+# Production image
+FROM node:20-alpine
+
+WORKDIR /app
+
+# Copy package info and install production dependencies only
+COPY package.json package-lock.json ./
+RUN npm ci --omit=dev
+
+# Copy built artifacts from builder
+COPY --from=builder /app/dist ./dist
 
 # Create directories for data and logs
 RUN mkdir -p data logs
 
 # Health check
 HEALTHCHECK --interval=60s --timeout=10s --retries=3 \
-    CMD python main.py --health || exit 1
+    CMD node dist/main.js --health || exit 1
 
 # Run the bot
-CMD ["python", "main.py"]
+CMD ["node", "dist/main.js"]
