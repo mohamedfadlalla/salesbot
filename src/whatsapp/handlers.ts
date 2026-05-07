@@ -3,6 +3,8 @@ import { ChatRepository } from "../storage/repository";
 import { getProvider } from "../providers";
 import { Logger } from "../utils/logger";
 import { Settings } from "../config/settings";
+import { SYSTEM_PROMPT } from "../config/system-prompt";
+import { ChatMessage } from "../storage/models";
 
 const chatRepo = new ChatRepository();
 
@@ -39,11 +41,14 @@ export async function handleIncomingMessage(sock: WASocket, msg: WAMessage, sess
         // Fetch conversation history
         const history = chatRepo.getHistory(remoteJid, Settings.MAX_HISTORY_MESSAGES);
 
-        // Prepare provider messages
-        const messagesForProvider = history.map(h => ({
-            role: h.role,
-            content: h.content
-        }));
+        // Prepare provider messages with system prompt prepended
+        const messagesForProvider: ChatMessage[] = [
+            { role: "system", content: SYSTEM_PROMPT },
+            ...history.map(h => ({
+                role: h.role as ChatMessage["role"],
+                content: h.content
+            }))
+        ];
 
         Logger.info(`[${sessionId}] Received message from ${remoteJid}: ${text}`);
 
