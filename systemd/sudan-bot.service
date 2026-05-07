@@ -4,7 +4,7 @@ After=network.target
 
 [Service]
 Type=simple
-User=botuser
+User=root
 WorkingDirectory=/opt/sudan-bot
 ExecStart=/usr/bin/node dist/main.js
 Restart=always
