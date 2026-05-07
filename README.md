@@ -119,7 +119,7 @@ Edit `.env`:
 # Ollama (default)
 AI_PROVIDER=ollama
 OLLAMA_API_KEY=your_key
-OLLAMA_MODEL=gemma3:27b
+OLLAMA_MODEL=gemma4:31b-cloud
 
 # OpenRouter
 AI_PROVIDER=openrouter

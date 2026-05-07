@@ -13,7 +13,7 @@ export class Settings {
     // Ollama
     static OLLAMA_HOST = process.env.OLLAMA_HOST || "https://ollama.com";
     static OLLAMA_API_KEY = process.env.OLLAMA_API_KEY || "";
-    static OLLAMA_MODEL = process.env.OLLAMA_MODEL || "gemma3:27b";
+    static OLLAMA_MODEL = process.env.OLLAMA_MODEL || "gemma4:31b-cloud";
 
     // OpenRouter
     static OPENROUTER_API_KEY = process.env.OPENROUTER_API_KEY || "";
