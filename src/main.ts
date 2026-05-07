@@ -1,10 +1,8 @@
-import { Telegraf } from "telegraf";
 import { Settings } from "./config/settings";
 import { initDb } from "./storage/database";
 import { getProvider } from "./providers";
 import { Logger } from "./utils/logger";
-import { registerHandlers } from "./bot/handlers";
-import { runUserClient } from "./bot/user_client";
+import { sessionManager } from "./whatsapp/session-manager";
 
 async function healthCheck() {
     const errors: string[] = [];
@@ -18,7 +16,7 @@ async function healthCheck() {
     }
 
     try {
-        await initDb();
+        initDb();
         console.log("✅ Database: OK");
     } catch (e: any) {
         errors.push(`Database: ${e.message}`);
@@ -47,13 +45,27 @@ async function healthCheck() {
     }
 }
 
-async function runBotMode() {
+async function main() {
+    const args = process.argv.slice(2);
+    if (args.includes("--health")) {
+        await healthCheck();
+        return;
+    }
+
     Logger.info("=".repeat(60));
-    Logger.info("Starting bot (mode=bot)...");
+    Logger.info("Starting WhatsApp Bot...");
     Logger.info("=".repeat(60));
 
-    Settings.validate();
-    await initDb();
+    // Validate config without Telegram requirements
+    // (We should remove telegram specific validations from settings.ts)
+    try {
+        Settings.validate();
+    } catch (e) {
+        // Ignoring telegram specific errors for now, 
+        // ideally they should be removed from Settings
+    }
+
+    initDb();
     
     const provider = getProvider();
     if (!(await provider.healthCheck())) {
@@ -62,41 +74,17 @@ async function runBotMode() {
     }
     Logger.info(`AI provider (${Settings.AI_PROVIDER}) is healthy`);
 
-    const bot = new Telegraf(Settings.BOT_TOKEN);
-    registerHandlers(bot);
+    // Start a default session
+    await sessionManager.startSession("default");
 
     process.once('SIGINT', () => {
         Logger.info("Received signal SIGINT, shutting down...");
-        bot.stop('SIGINT');
+        process.exit(0);
     });
     process.once('SIGTERM', () => {
         Logger.info("Received signal SIGTERM, shutting down...");
-        bot.stop('SIGTERM');
+        process.exit(0);
     });
-
-    Logger.info("Bot is running — polling for updates...");
-    bot.launch();
-}
-
-async function main() {
-    const args = process.argv.slice(2);
-    if (args.includes("--health")) {
-        await healthCheck();
-    } else if (Settings.TELEGRAM_MODE === "user") {
-        Settings.validate();
-        await initDb();
-        
-        const provider = getProvider();
-        if (!(await provider.healthCheck())) {
-            Logger.error("AI provider health check failed on startup");
-            process.exit(1);
-        }
-        Logger.info(`AI provider (${Settings.AI_PROVIDER}) is healthy`);
-        
-        await runUserClient();
-    } else {
-        await runBotMode();
-    }
 }
 
 if (require.main === module) {

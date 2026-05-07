@@ -1,5 +1,5 @@
 export interface User {
-    user_id: number;
+    user_id: string;
     first_name: string;
     username: string;
     first_seen: string; // ISO string

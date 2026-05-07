@@ -7,15 +7,6 @@ const PROJECT_ROOT = path.resolve(__dirname, "../../");
 dotenv.config({ path: path.join(PROJECT_ROOT, ".env") });
 
 export class Settings {
-    // --- Telegram ---
-    static TELEGRAM_MODE = process.env.TELEGRAM_MODE || "bot";
-    static BOT_TOKEN = process.env.BOT_TOKEN || "";
-    
-    // User mode credentials
-    static API_ID = parseInt(process.env.API_ID || "0", 10);
-    static API_HASH = process.env.API_HASH || "";
-    static SESSION_NAME = process.env.SESSION_NAME || "userbot_session";
-
     // --- AI Provider ---
     static AI_PROVIDER = process.env.AI_PROVIDER || "ollama";
 
@@ -37,29 +28,12 @@ export class Settings {
     static MAX_HISTORY_MESSAGES = parseInt(process.env.MAX_HISTORY_MESSAGES || "20", 10);
 
     // --- Paths ---
-    static DATABASE_PATH = process.env.DATABASE_PATH || "data/bot.db";
+    static DATABASE_PATH = process.env.DATABASE_PATH || "data/whatsapp.db";
     static LOG_LEVEL = process.env.LOG_LEVEL || "INFO";
     static LOG_FILE = process.env.LOG_FILE || "logs/bot.log";
 
     static validate() {
         const errors: string[] = [];
-
-        if (this.TELEGRAM_MODE !== "bot" && this.TELEGRAM_MODE !== "user") {
-            errors.push(`TELEGRAM_MODE must be 'bot' or 'user', got '${this.TELEGRAM_MODE}'`);
-        }
-
-        if (this.TELEGRAM_MODE === "bot" && !this.BOT_TOKEN) {
-            errors.push("BOT_TOKEN is required when TELEGRAM_MODE=bot");
-        }
-
-        if (this.TELEGRAM_MODE === "user") {
-            if (!this.API_ID || this.API_ID === 0) {
-                errors.push("API_ID is required when TELEGRAM_MODE=user");
-            }
-            if (!this.API_HASH) {
-                errors.push("API_HASH is required when TELEGRAM_MODE=user");
-            }
-        }
 
         if (this.AI_PROVIDER === "ollama" && !this.OLLAMA_API_KEY) {
             errors.push("OLLAMA_API_KEY is required when AI_PROVIDER=ollama");
