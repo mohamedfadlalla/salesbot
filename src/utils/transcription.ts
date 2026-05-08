@@ -1,6 +1,7 @@
 import * as fs from "fs";
 import * as path from "path";
-import { Transform } from "stream";
+import { pipeline } from "stream/promises";
+import { createWriteStream } from "fs";
 import axios from "axios";
 import { downloadContentFromMessage, WAMessage } from "@whiskeysockets/baileys";
 import { Settings } from "../config/settings";
@@ -37,21 +38,11 @@ export function isAudioMessage(msg: WAMessage): boolean {
 }
 
 /**
- * Read a Node.js Readable stream into a Buffer.
- * Baileys v7's downloadContentFromMessage returns a Readable stream, not an async iterable.
- */
-function streamToBuffer(stream: Transform): Promise<Buffer> {
-    return new Promise<Buffer>((resolve, reject) => {
-        const chunks: Buffer[] = [];
-        stream.on("data", (chunk: Buffer) => chunks.push(chunk));
-        stream.on("end", () => resolve(Buffer.concat(chunks)));
-        stream.on("error", (err) => reject(err));
-    });
-}
-
-/**
  * Download audio from a WhatsApp message and save it to a temporary file.
  * Returns the path to the downloaded audio file.
+ * 
+ * downloadContentFromMessage is async and returns a Node.js Readable (Transform) stream.
+ * We use stream.pipeline to pipe it directly to a file — the most robust approach.
  */
 async function downloadAudio(msg: WAMessage): Promise<string> {
     const audioMsg = msg.message?.audioMessage;
@@ -61,15 +52,16 @@ async function downloadAudio(msg: WAMessage): Promise<string> {
 
     const mimetype = audioMsg.mimetype || "audio/ogg";
     const extension = mimetype.split("/").pop() || "ogg";
-
-    // downloadContentFromMessage returns a Node.js Readable (Transform) stream in Baileys v7
-    const stream = downloadContentFromMessage(audioMsg, "audio") as unknown as Transform;
-    const audioBuffer = await streamToBuffer(stream);
-    
     const audioPath = tempAudioPath(extension);
-    fs.writeFileSync(audioPath, audioBuffer);
 
-    Logger.debug(`Audio downloaded to ${audioPath} (${audioBuffer.length} bytes)`);
+    // downloadContentFromMessage is async, returns a Promise<Stream>
+    const stream = await downloadContentFromMessage(audioMsg, "audio");
+    
+    // Pipe stream directly to file using pipeline (handles errors & cleanup automatically)
+    await pipeline(stream, createWriteStream(audioPath));
+
+    const stat = fs.statSync(audioPath);
+    Logger.debug(`Audio downloaded to ${audioPath} (${stat.size} bytes)`);
     return audioPath;
 }
 
