@@ -1,5 +1,6 @@
 import * as fs from "fs";
 import * as path from "path";
+import { Transform } from "stream";
 import axios from "axios";
 import { downloadContentFromMessage, WAMessage } from "@whiskeysockets/baileys";
 import { Settings } from "../config/settings";
@@ -36,6 +37,19 @@ export function isAudioMessage(msg: WAMessage): boolean {
 }
 
 /**
+ * Read a Node.js Readable stream into a Buffer.
+ * Baileys v7's downloadContentFromMessage returns a Readable stream, not an async iterable.
+ */
+function streamToBuffer(stream: Transform): Promise<Buffer> {
+    return new Promise<Buffer>((resolve, reject) => {
+        const chunks: Buffer[] = [];
+        stream.on("data", (chunk: Buffer) => chunks.push(chunk));
+        stream.on("end", () => resolve(Buffer.concat(chunks)));
+        stream.on("error", (err) => reject(err));
+    });
+}
+
+/**
  * Download audio from a WhatsApp message and save it to a temporary file.
  * Returns the path to the downloaded audio file.
  */
@@ -48,15 +62,10 @@ async function downloadAudio(msg: WAMessage): Promise<string> {
     const mimetype = audioMsg.mimetype || "audio/ogg";
     const extension = mimetype.split("/").pop() || "ogg";
 
-    // downloadContentFromMessage accepts the message sub-object (e.g. audioMessage) and the stream type
-    const stream = downloadContentFromMessage(audioMsg, "audio");
-    const chunks: Buffer[] = [];
-
-    for await (const chunk of stream as unknown as AsyncIterable<Buffer>) {
-        chunks.push(chunk);
-    }
-
-    const audioBuffer = Buffer.concat(chunks);
+    // downloadContentFromMessage returns a Node.js Readable (Transform) stream in Baileys v7
+    const stream = downloadContentFromMessage(audioMsg, "audio") as unknown as Transform;
+    const audioBuffer = await streamToBuffer(stream);
+    
     const audioPath = tempAudioPath(extension);
     fs.writeFileSync(audioPath, audioBuffer);
 
