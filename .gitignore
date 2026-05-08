@@ -7,4 +7,5 @@ logs/
 *.sqlite
 *.sqlite3
 *.db
+tmp/
 .DS_Store
