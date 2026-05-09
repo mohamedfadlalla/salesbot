@@ -2,10 +2,9 @@ import * as fs from "fs";
 import * as path from "path";
 import { pipeline } from "stream/promises";
 import { createWriteStream } from "fs";
-import axios from "axios";
+import Groq from "groq-sdk";
 import { downloadContentFromMessage, WAMessage } from "@whiskeysockets/baileys";
 import { Settings } from "../config/settings";
-import { TRANSCRIPTION_PROMPT } from "../config/transcription-prompt";
 import { Logger } from "./logger";
 
 const TMP_DIR = path.resolve(__dirname, "../../tmp");
@@ -66,21 +65,7 @@ async function downloadAudio(msg: WAMessage): Promise<string> {
 }
 
 /**
- * Read an audio file and return its base64-encoded data URI.
- */
-function encodeAudioAsDataUri(audioPath: string): string {
-    const audioBuffer = fs.readFileSync(audioPath);
-    const extension = path.extname(audioPath).replace(".", "");
-    const mimeType = `audio/${extension}`;
-    const base64 = audioBuffer.toString("base64");
-    return `data:${mimeType};base64,${base64}`;
-}
-
-/**
- * Transcribe an audio WhatsApp message to text using the LLM provider.
- * 
- * This uses a stateless approach — no chat history, only the transcription
- * system prompt + audio data sent to the LLM.
+ * Transcribe an audio WhatsApp message to text using the Groq API.
  * 
  * @param msg The WhatsApp message containing audio
  * @returns The transcribed text
@@ -92,11 +77,8 @@ export async function transcribeAudio(msg: WAMessage): Promise<string> {
         Logger.info("Downloading audio from WhatsApp message...");
         audioPath = await downloadAudio(msg);
 
-        Logger.info("Encoding audio as base64 data URI...");
-        const audioDataUri = encodeAudioAsDataUri(audioPath);
-
-        Logger.info("Sending audio to LLM for transcription...");
-        const transcribedText = await callTranscriptionLlm(audioDataUri);
+        Logger.info("Sending audio to Groq for transcription...");
+        const transcribedText = await transcribeWithGroq(audioPath);
 
         Logger.info(`Transcription result: "${transcribedText}"`);
         return transcribedText;
@@ -118,42 +100,20 @@ export async function transcribeAudio(msg: WAMessage): Promise<string> {
 }
 
 /**
- * Call the LLM (via Ollama API directly) for transcription.
- * This is a separate, stateless call — no chat history, only the audio + instruction.
- * 
- * For multimodal audio support, the audio is passed as a data URI string in the 
- * user message content.
+ * Transcribe an audio file using Groq's Whisper API.
+ * Uses `groq-sdk` directly with a file stream.
  */
-async function callTranscriptionLlm(audioDataUri: string): Promise<string> {
-    const host = Settings.OLLAMA_HOST;
-    const model = Settings.OLLAMA_MODEL;
-    const headers = {
-        "Authorization": `Bearer ${Settings.OLLAMA_API_KEY}`,
-        "Content-Type": "application/json"
-    };
+async function transcribeWithGroq(audioPath: string): Promise<string> {
+    const groq = new Groq({ apiKey: Settings.GROQ_API_KEY });
 
-    const payload = {
-        model: model,
-        messages: [
-            {
-                role: "system",
-                content: TRANSCRIPTION_PROMPT
-            },
-            {
-                role: "user",
-                content: `Transcribe this audio to text:\n${audioDataUri}`
-            }
-        ],
-        stream: false
-    };
+    Logger.debug(`Sending transcription request to Groq with model ${Settings.GROQ_MODEL}`);
 
-    Logger.debug(`Sending transcription request to ${host}/api/chat with model ${model}`);
-
-    const response = await axios.post(`${host}/api/chat`, payload, {
-        headers,
-        timeout: 120000 // 2-minute timeout for audio processing
+    const transcription = await groq.audio.transcriptions.create({
+        file: fs.createReadStream(audioPath),
+        model: Settings.GROQ_MODEL,
+        temperature: 0,
+        response_format: "verbose_json",
     });
 
-    const transcribedText = response.data.message.content.trim();
-    return transcribedText;
+    return transcription.text;
 }

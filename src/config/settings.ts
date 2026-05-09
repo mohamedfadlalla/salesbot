@@ -19,6 +19,10 @@ export class Settings {
     static OPENROUTER_API_KEY = process.env.OPENROUTER_API_KEY || "";
     static OPENROUTER_MODEL = process.env.OPENROUTER_MODEL || "google/gemini-2.0-flash-001";
 
+    // Groq (for audio transcription)
+    static GROQ_API_KEY = process.env.GROQ_API_KEY || "";
+    static GROQ_MODEL = process.env.GROQ_MODEL || "whisper-large-v3-turbo";
+
     // Gemini
     static GEMINI_API_KEY = process.env.GEMINI_API_KEY || "";
     static GEMINI_MODEL = process.env.GEMINI_MODEL || "gemini-2.0-flash";
@@ -37,6 +41,9 @@ export class Settings {
 
         if (this.AI_PROVIDER === "ollama" && !this.OLLAMA_API_KEY) {
             errors.push("OLLAMA_API_KEY is required when AI_PROVIDER=ollama");
+        }
+        if (!this.GROQ_API_KEY) {
+            errors.push("GROQ_API_KEY is required for audio transcription");
         }
         if (this.AI_PROVIDER === "openrouter" && !this.OPENROUTER_API_KEY) {
             errors.push("OPENROUTER_API_KEY is required when AI_PROVIDER=openrouter");
