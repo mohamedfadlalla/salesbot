@@ -1,6 +1,6 @@
 import { WASocket, WAMessage } from "@whiskeysockets/baileys";
 
-const DEBOUNCE_DELAY_MS = 5000; // 5 seconds
+const DEBOUNCE_DELAY_MS = 10000; // 10 seconds
 
 interface BufferEntry {
     timer: NodeJS.Timeout;
