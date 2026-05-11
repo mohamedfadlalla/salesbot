@@ -50,7 +50,7 @@ async function downloadAudio(msg: WAMessage): Promise<string> {
     }
 
     const mimetype = audioMsg.mimetype || "audio/ogg";
-    const extension = mimetype.split("/").pop() || "ogg";
+    const extension = mimetype.split("/")[1]?.split(";")[0]?.trim() || "ogg";
     const audioPath = tempAudioPath(extension);
 
     // downloadContentFromMessage is async, returns a Promise<Stream>
