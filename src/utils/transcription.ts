@@ -111,6 +111,7 @@ async function transcribeWithGroq(audioPath: string): Promise<string> {
     const transcription = await groq.audio.transcriptions.create({
         file: fs.createReadStream(audioPath),
         model: Settings.GROQ_MODEL,
+        language: "ar",
         temperature: 0,
         response_format: "verbose_json",
     });
