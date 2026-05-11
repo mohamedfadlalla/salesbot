@@ -12,9 +12,26 @@ export function getConnection(): Database.Database {
         if (!fs.existsSync(dir)) {
             fs.mkdirSync(dir, { recursive: true });
         }
+
+        // Ensure the database file exists before opening, with proper permissions
+        if (!fs.existsSync(DB_PATH)) {
+            fs.writeFileSync(DB_PATH, "", { mode: 0o644 });
+        } else {
+            // Verify the file is writable
+            try {
+                fs.accessSync(DB_PATH, fs.constants.R_OK | fs.constants.W_OK);
+            } catch {
+                throw new Error(
+                    `Database file at "${DB_PATH}" is not writable. ` +
+                    `Run: chown -R $(whoami) "${dir}" && chmod -R 755 "${dir}"`
+                );
+            }
+        }
+
         dbInstance = new Database(DB_PATH);
         dbInstance.pragma("journal_mode = WAL");
         dbInstance.pragma("foreign_keys = ON");
+        dbInstance.pragma("busy_timeout = 5000");
     }
     return dbInstance;
 }

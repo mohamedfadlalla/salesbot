@@ -1,7 +1,7 @@
 import { initAuthCreds, BufferJSON, AuthenticationState, SignalDataTypeMap } from "@whiskeysockets/baileys";
 import { getConnection } from "../storage/database";
 
-export const useSqliteAuthState = async (sessionId: string): Promise<{ state: AuthenticationState, saveCreds: () => void }> => {
+export const useSqliteAuthState = async (sessionId: string): Promise<{ state: AuthenticationState, saveCreds: () => void; getWriteErrorCount: () => number }> => {
     const db = getConnection();
 
     const readData = (id: string) => {
@@ -16,19 +16,19 @@ export const useSqliteAuthState = async (sessionId: string): Promise<{ state: Au
         return null;
     };
 
+    let writeErrorCount = 0;
+
     const writeData = (id: string, data: any) => {
-        try {
-            const str = JSON.stringify(data, BufferJSON.replacer);
-            db.prepare(`
-                INSERT INTO whatsapp_sessions (id, session_data) 
-                VALUES (?, ?)
-                ON CONFLICT(id) DO UPDATE SET 
-                    session_data = excluded.session_data,
-                    updated_at = CURRENT_TIMESTAMP
-            `).run(id, str);
-        } catch (e) {
-            console.error("Error writing auth state", e);
-        }
+        const str = JSON.stringify(data, BufferJSON.replacer);
+        db.prepare(`
+            INSERT INTO whatsapp_sessions (id, session_data) 
+            VALUES (?, ?)
+            ON CONFLICT(id) DO UPDATE SET 
+                session_data = excluded.session_data,
+                updated_at = CURRENT_TIMESTAMP
+        `).run(id, str);
+        // If we get here, the write succeeded — reset error counter
+        writeErrorCount = 0;
     };
 
     const removeData = (id: string) => {
@@ -78,7 +78,15 @@ export const useSqliteAuthState = async (sessionId: string): Promise<{ state: Au
             }
         },
         saveCreds: () => {
-            writeData(credsKey, creds);
-        }
+            try {
+                writeData(credsKey, creds);
+            } catch (e: any) {
+                writeErrorCount++;
+                console.error("Error writing auth state", e);
+                // Re-throw so the session manager can detect the failure
+                throw e;
+            }
+        },
+        getWriteErrorCount: () => writeErrorCount,
     };
 };
