@@ -1,4 +1,4 @@
-import * as fs from "fs";
+mport * as fs from "fs";
 import * as path from "path";
 import { pipeline } from "stream/promises";
 import { createWriteStream } from "fs";
@@ -39,7 +39,10 @@ export function isAudioMessage(msg: WAMessage): boolean {
 /**
  * Download audio from a WhatsApp message and save it to a temporary file.
  * Returns the path to the downloaded audio file.
- * 
+ *
+ * WhatsApp's native voice note format is Ogg Opus, which is supported by Groq,
+ * so we always save with .ogg extension regardless of the reported MIME type.
+ *
  * downloadContentFromMessage is async and returns a Node.js Readable (Transform) stream.
  * We use stream.pipeline to pipe it directly to a file — the most robust approach.
  */
@@ -49,13 +52,12 @@ async function downloadAudio(msg: WAMessage): Promise<string> {
         throw new Error("No audio message found in WAMessage");
     }
 
-    const mimetype = audioMsg.mimetype || "audio/ogg";
-    const extension = mimetype.split("/")[1]?.split(";")[0]?.trim() || "ogg";
-    const audioPath = tempAudioPath(extension);
+    // WhatsApp audio is always Ogg Opus — use .ogg which is in Groq's allowed list
+    const audioPath = tempAudioPath("ogg");
 
     // downloadContentFromMessage is async, returns a Promise<Stream>
     const stream = await downloadContentFromMessage(audioMsg, "audio");
-    
+
     // Pipe stream directly to file using pipeline (handles errors & cleanup automatically)
     await pipeline(stream, createWriteStream(audioPath));
 
@@ -66,7 +68,7 @@ async function downloadAudio(msg: WAMessage): Promise<string> {
 
 /**
  * Transcribe an audio WhatsApp message to text using the Groq API.
- * 
+ *
  * @param msg The WhatsApp message containing audio
  * @returns The transcribed text
  */
