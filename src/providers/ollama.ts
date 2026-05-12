@@ -33,11 +33,8 @@ export class OllamaProvider implements AIProvider {
     }
 
     async describeImage(imageBuffer: Buffer, mimeType: string): Promise<ImageDescription> {
-        // Convert the image buffer to base64
+        // Convert the image buffer to raw base64 (Ollama expects raw base64, not data URIs)
         const base64Image = imageBuffer.toString("base64");
-
-        // The data URI format for the image
-        const dataUri = `data:${mimeType};base64,${base64Image}`;
 
         // Prompt specifically for image description and bank transaction detection
         const prompt = `You are an image analysis assistant. Analyze this image carefully.
@@ -54,7 +51,7 @@ Be concise but thorough in your description.`;
                 {
                     role: "user",
                     content: prompt,
-                    images: [dataUri]
+                    images: [base64Image]
                 }
             ],
             stream: false
