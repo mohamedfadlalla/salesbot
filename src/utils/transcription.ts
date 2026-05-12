@@ -1,4 +1,4 @@
-mport * as fs from "fs";
+import * as fs from "fs";
 import * as path from "path";
 import { pipeline } from "stream/promises";
 import { createWriteStream } from "fs";
@@ -37,14 +37,36 @@ export function isAudioMessage(msg: WAMessage): boolean {
 }
 
 /**
+ * Map common WhatsApp audio MIME types to file extensions.
+ * WhatsApp may send audio in Ogg Opus (Android), MP4/AAC (iOS/web),
+ * or other formats. We derive the correct extension from the
+ * reported MIME type to ensure Groq API acceptance.
+ */
+const MIME_TO_EXT: Record<string, string> = {
+    "audio/ogg": "ogg",
+    "audio/ogg; codecs=opus": "ogg",
+    "audio/opus": "opus",
+    "audio/mp4": "m4a",
+    "audio/aac": "m4a",
+    "audio/mpeg": "mp3",
+    "audio/mp3": "mp3",
+    "audio/wav": "wav",
+    "audio/wave": "wav",
+    "audio/webm": "webm",
+};
+
+function mimeToExtension(mime: string | null | undefined): string {
+    if (!mime) return "ogg"; // fallback
+    const normalized = mime.toLowerCase().trim();
+    return MIME_TO_EXT[normalized] || "ogg";
+}
+
+/**
  * Download audio from a WhatsApp message and save it to a temporary file.
  * Returns the path to the downloaded audio file.
  *
- * WhatsApp's native voice note format is Ogg Opus, which is supported by Groq,
- * so we always save with .ogg extension regardless of the reported MIME type.
- *
- * downloadContentFromMessage is async and returns a Node.js Readable (Transform) stream.
- * We use stream.pipeline to pipe it directly to a file — the most robust approach.
+ * The extension is determined from the message's MIME type so that Groq's
+ * API receives a file with a recognized extension.
  */
 async function downloadAudio(msg: WAMessage): Promise<string> {
     const audioMsg = msg.message?.audioMessage;
@@ -52,8 +74,12 @@ async function downloadAudio(msg: WAMessage): Promise<string> {
         throw new Error("No audio message found in WAMessage");
     }
 
-    // WhatsApp audio is always Ogg Opus — use .ogg which is in Groq's allowed list
-    const audioPath = tempAudioPath("ogg");
+    // Get the actual MIME type from the message to determine the correct extension
+    const mimeType = audioMsg.mimetype || null;
+    const ext = mimeToExtension(mimeType);
+    Logger.debug(`Audio message MIME type: "${mimeType}", using extension: .${ext}`);
+
+    const audioPath = tempAudioPath(ext);
 
     // downloadContentFromMessage is async, returns a Promise<Stream>
     const stream = await downloadContentFromMessage(audioMsg, "audio");
@@ -115,7 +141,7 @@ async function transcribeWithGroq(audioPath: string): Promise<string> {
         model: Settings.GROQ_MODEL,
         language: "ar",
         temperature: 0,
-        response_format: "verbose_json",
+        response_format: "json",
     });
 
     return transcription.text;
