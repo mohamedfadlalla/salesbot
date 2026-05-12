@@ -1,5 +1,5 @@
 import axios from "axios";
-import { AIProvider } from "./base";
+import { AIProvider, ImageDescription } from "./base";
 import { Settings } from "../config/settings";
 import { ChatMessage, toDict } from "../storage/models";
 
@@ -29,6 +29,10 @@ export class OpenRouterProvider implements AIProvider {
         });
 
         return response.data.choices[0].message.content;
+    }
+
+    async describeImage(_imageBuffer: Buffer, _mimeType: string): Promise<ImageDescription> {
+        throw new Error("Image description not supported with OpenRouter provider. Use Ollama provider instead.");
     }
 
     async healthCheck(): Promise<boolean> {

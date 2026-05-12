@@ -1,5 +1,5 @@
 import { GoogleGenerativeAI, Content } from "@google/generative-ai";
-import { AIProvider } from "./base";
+import { AIProvider, ImageDescription } from "./base";
 import { Settings } from "../config/settings";
 import { ChatMessage } from "../storage/models";
 
@@ -45,6 +45,10 @@ export class GeminiProvider implements AIProvider {
         
         const response = await chat.sendMessage(lastMsg.parts[0].text);
         return response.response.text();
+    }
+
+    async describeImage(_imageBuffer: Buffer, _mimeType: string): Promise<ImageDescription> {
+        throw new Error("Image description not supported with Gemini provider. Use Ollama provider instead.");
     }
 
     async healthCheck(): Promise<boolean> {
